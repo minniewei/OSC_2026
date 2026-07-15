@@ -1,0 +1,8 @@
+*.o
+*.elf
+*.bin
+*.fit
+*.its
+*.img
+.vscode/
+x1_orangepi-rv2.dtb
