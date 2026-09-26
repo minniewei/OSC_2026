@@ -1,6 +1,9 @@
 .section ".text.boot"
 .global _start
 _start:
+    // Save DTB address in a temporary register before clearing BSS
+    mv s0, a1
+    
     // Set up the stack pointer
     la sp, _end
 
@@ -15,4 +18,10 @@ clear_bss_loop:
     j clear_bss_loop
 
 jump_to_kernel:
-    tail start_kernel
+    la t0, g_dft_ptr
+    sd s0, 0(t0)
+    jal ra, start_kernel
+    
+infinite_loop:
+    wfi
+    j infinite_loop
