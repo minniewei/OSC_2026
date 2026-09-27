@@ -14,5 +14,7 @@ int strncmp(const char *s1, const char *s2, size_t n);
 int strcmp(const char *s1, const char *s2);
 char *strchr(const char *s, int c);
 const void *align_up(const void *ptr, size_t align);
+int align_int(int n, int align);
+int hextoi(const char *s, int n);
 
 #endif

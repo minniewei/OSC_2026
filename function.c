@@ -70,3 +70,26 @@ const void *align_up(const void *ptr, size_t align)
 {
     return (const void *)(((uintptr_t)ptr + align - 1) & ~(align - 1));
 }
+
+// Align integer up to alignment boundary
+int align_int(int n, int align)
+{
+    return (n + align - 1) & ~(align - 1);
+}
+
+// Helper functions for parsing hex
+int hextoi(const char *s, int n)
+{
+    int r = 0;
+    while (n-- > 0)
+    {
+        r = r << 4;
+        if (*s >= 'A')
+            r += *s++ - 'A' + 10;
+        else if (*s >= 'a')
+            r += *s++ - 'a' + 10;
+        else
+            r += *s++ - '0';
+    }
+    return r;
+}

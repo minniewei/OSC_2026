@@ -6,11 +6,13 @@
 #define BUFFER_SIZE 128
 
 #include <stdint.h>
-#include "sbi.h"
-#include "fdt.h"
+#include "sbi.h"    // sbi ecall implementation
+#include "fdt.h"    // Device Tree parsing functions
+#include "initrd.h" // Initramfs and CPIO operations
 
 void *g_dft_ptr = NULL;
 unsigned long uart_base;
+void *initramfs_ptr = NULL;
 
 // Initialize UART base address from device tree
 void uart_init()
@@ -95,15 +97,49 @@ void uart_puthex(unsigned long val)
     }
 }
 
+// Helper function to extract command and argument
+static int split_command(const char *cmd, char *command, char *argument)
+{
+    int i = 0;
+    // Extract command
+    while (cmd[i] && cmd[i] != ' ')
+    {
+        command[i] = cmd[i];
+        i++;
+    }
+    command[i] = '\0';
+
+    // Skip spaces
+    while (cmd[i] && cmd[i] == ' ')
+        i++;
+
+    // Extract argument
+    int j = 0;
+    while (cmd[i])
+    {
+        argument[j] = cmd[i];
+        i++;
+        j++;
+    }
+    argument[j] = '\0';
+
+    return 1;
+}
+
 // Decide what to do based on the command input
 void handle_command(const char *cmd)
 {
+    char command[64];
+    char argument[64];
+
     if (strcmp(cmd, "help") == 0)
     {
         uart_puts("Available commands:\r\n");
         uart_puts("  help  - show all commands.\r\n");
         uart_puts("  hello - print Hello world.\r\n");
         uart_puts("  info  - print system info.\r\n");
+        uart_puts("  ls    - list files in initramfs.\r\n");
+        uart_puts("  cat   - display file content.\r\n");
     }
     else if (strcmp(cmd, "hello") == 0)
     {
@@ -130,6 +166,34 @@ void handle_command(const char *cmd)
         uart_puthex(impl_ver);
         uart_puts("\r\n");
     }
+    else if (strcmp(cmd, "ls") == 0)
+    {
+        if (initramfs_ptr == NULL)
+        {
+            uart_puts("Error: initramfs not loaded\r\n");
+        }
+        else
+        {
+            uart_puts("Files in initramfs:\r\n");
+            initrd_list(initramfs_ptr);
+        }
+    }
+    else if (strncmp(cmd, "cat ", 4) == 0)
+    {
+        split_command(cmd, command, argument);
+        if (argument[0] == '\0')
+        {
+            uart_puts("Usage: cat <filename>\r\n");
+        }
+        else if (initramfs_ptr == NULL)
+        {
+            uart_puts("Error: initramfs not loaded\r\n");
+        }
+        else
+        {
+            initrd_cat(initramfs_ptr, argument);
+        }
+    }
     else
     {
         uart_puts("Unknown command: ");
@@ -143,6 +207,9 @@ void start_kernel()
 {
     // Initialize UART address from device tree
     uart_init();
+
+    // Initialize initramfs address from device tree
+    initramfs_init();
 
     char buf[BUFFER_SIZE];
     int idx = 0;
